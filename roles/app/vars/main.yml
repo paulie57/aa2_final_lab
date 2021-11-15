@@ -1,9 +1,9 @@
 ---
 # vars file for roles/app#
-# flask_app_name: resource_hub
+lask_app_name: resource_hub
 flask_user: flask
 flask_home: /opt/
-flask_repo: https://github.com/tonykay/resource_hub.git
+flask_repo: "https://github.com/tonykay/resource_hub.git"
 flask_scm_ref: main
 flask_app_lauch_script: /usr/local/bin/launch_resource_hub
 virtualenv_name: "venv-{{ flask_app_name }}"
