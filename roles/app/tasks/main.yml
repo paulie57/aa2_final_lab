@@ -26,7 +26,7 @@
   loop_control:
     loop_var: __package
 
-- name: "Install flask repo {{ flask_repo }}"
+- name: Install flask repo
   git:
     repo: "{{ flask_repo }}"
     dest: "{{ flask_home }}/{{ flask_app_name }}"
