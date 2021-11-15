@@ -1,0 +1,53 @@
+---
+- name: In-Memory Inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    guid: "{{ lookup('ENV','GUID') }}"
+    home: "{{ lookup('ENV','HOME') }}"
+    internal_domain: "example.com"
+  tasks:
+    - name: Collection instance info
+      os_server_info:
+#        cloud: "{{ guid }}-project"
+      register: instances
+
+    - name: Build In-Memory inventory backend
+      add_host:
+        host: "{{ instance.name }}.{{ internal_domain }}"
+        group: "{{ instance.metadata.AnsibleGroup }}"
+        ansible_host: "{{ instance.private_v4 }}"
+        ssh_private_key_file: "{{ home }}/.ssh/{{ guid }}key.pem"
+      when: instance.metadata.AnsibleGroup == "load_balancers"
+      loop: "{{ instances.openstack_servers }}"
+      loop_control:
+        loop_var: instance
+
+
+- name: Gather app facts
+  hosts: load_balancers
+  gather_facts: true
+
+
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: os_server_info
+      os_server_info:
+        server: lb
+      register: lb_instance
+
+    - name: Smoke test for muti-tier app
+      uri:
+        url: "http://{{ __instance.private_v4 }}/?name=root"
+        method: GET
+        return_content: yes
+      loop: "{{ lb_instance.openstack_servers }}"
+      loop_control:
+        loop_var: __instance
+      register: content
+    - name: Debug Content
+      debug:
+        msg: "{{ content }}"
+

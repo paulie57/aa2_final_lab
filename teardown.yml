@@ -1,17 +1,77 @@
 ---
-- name: Teardown Postgres 10
+- name: In-Memory Inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    guid: "{{ lookup('ENV','GUID') }}"
+    home: "{{ lookup('ENV','HOME') }}"
+    internal_domain: "example.com"
+  tasks:
+    - name: Collection instance info
+      os_server_info:
+#        cloud: "{{ guid }}-project"
+      register: instances
+
+    - name: Build In-Memory inventory db
+      add_host:
+        host: "{{ instance.name }}.{{ internal_domain }}"
+        group: "{{ instance.metadata.AnsibleGroup }}"
+        ansible_host: "{{ instance.private_v4 }}"
+        ssh_private_key_file: "{{ home }}/.ssh/{{ guid }}key.pem"
+      when: instance.metadata.AnsibleGroup == "database_servers"
+      loop: "{{ instances.openstack_servers }}"
+      loop_control:
+        loop_var: instance
+    - name: Build In-Memory inventory backend
+      add_host:
+        host: "{{ instance.name }}.{{ internal_domain }}"
+        group: "{{ instance.metadata.AnsibleGroup }}"
+        ansible_host: "{{ instance.private_v4 }}"
+        ssh_private_key_file: "{{ home }}/.ssh/{{ guid }}key.pem"
+      when: instance.metadata.AnsibleGroup == "app_servers"
+      loop: "{{ instances.openstack_servers }}"
+      loop_control:
+        loop_var: instance
+
+    - name: Build In-Memory inventory backend
+      add_host:
+        host: "{{ instance.name }}.{{ internal_domain }}"
+        group: "{{ instance.metadata.AnsibleGroup }}"
+        ansible_host: "{{ instance.private_v4 }}"
+        ssh_private_key_file: "{{ home }}/.ssh/{{ guid }}key.pem"
+      when: instance.metadata.AnsibleGroup == "load_balancers"
+      loop: "{{ instances.openstack_servers }}"
+      loop_control:
+        loop_var: instance
+
+
+
+- name: Gather database facts
+  hosts: database_servers
+  gather_facts: true
+
+- name: Gather web facts
+  hosts: app_servers
+  gather_facts: true
+
+- name: Gather app facts
+  hosts: load_balancers
+  gather_facts: true
+
+- name: Teardown Postgres 12
   hosts: database_servers
   become: true
   gather_facts: false
   vars:
-    postgres_rhel7_repo:  pgdg-redhat-repo-42.0-11.noarch
+    postgres_rhel8_repo: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
     postgres_packages:
-      - postgresql10 
-      - postgresql10-server 
-      - postgresql10-contrib 
-      - postgresql10-libs
-    postgres_library: "python-psycopg2"
-    postgres_10_data_dir: /var/lib/pgsql/10/data
+      - postgresql12 
+      - postgresql12-server 
+      - postgresql12-contrib 
+      - postgresql12-libs
+    postgres_library: "python3-psycopg2"
+    postgres_10_data_dir: /var/lib/pgsql/12/data
     postgres_port: 5432
 
   tasks:
@@ -21,15 +81,15 @@
         name: "{{ __package }}"
         state: absent
       loop: 
-        - "{{ postgres_rhel7_repo }}"        
+#        - "{{ postgres_rhel8_repo }}"        
         - "{{ postgres_library }}"
         - "{{ postgres_packages }}"
       loop_control:
         loop_var: __package
 
-    - name: Remove Postgres 10 data directory
+    - name: Remove Postgres 12 data directory
       file:
-        path: /var/lib/pgsql/10
+        path: /var/lib/pgsql/12
         state: absent
 
     - name: Remove Postgres user

@@ -1,0 +1,17 @@
+---
+- name: Gather db facts
+  hosts: database_servers
+  gather_facts: true
+
+- name: Gather web facts
+  hosts: app_servers
+  gather_facts: true
+
+- name: Gather app facts
+  hosts: load_balancers
+  gather_facts: true
+
+ 
+- import_playbook: provision_database_tier.yml
+- import_playbook: provision_app_tier.yml
+- import_playbook: provision_load_balancer_tier.yml

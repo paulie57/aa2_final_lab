@@ -1,0 +1,23 @@
+---
+- name: Deploy, configure, and populate Postgres 10
+  hosts: database_servers
+  become: true
+  gather_facts: false
+  vars:
+    postgres_users:
+      - name: flask
+        password: redhat
+        database: flask_db
+        state: present
+        priv: ALL
+    postgres_databases:
+      - name: flask_db
+        owner: flask
+      - name: books_store
+        owner: flask
+  tags:
+    - database_servers
+
+  roles:
+  
+    - postgres

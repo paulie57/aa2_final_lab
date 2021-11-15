@@ -1,0 +1,40 @@
+---
+# tasks file for roles/host-updates
+
+- setup:
+    gather_subset:
+      - "network"
+  delegate_facts: true
+#  delegate_to: "{{ groups['control_node'][0] }}"
+  run_once: true
+
+- name: Insert DNS server IP address
+  lineinfile:
+    state: present
+    path: /etc/sysconfig/network-scripts/ifcfg-eth0
+    line: "{{ item }}"
+  loop:
+    - PEERDNS=no
+    - "DNS1={{ dns_ipv4 }}"
+  register: restart_nm
+
+- name: Restart NetworkManager
+  service:
+    name: NetworkManager
+    state: restarted
+  when:
+    - restart_nm.changed
+
+- name: Install katello-ca-consumer RPM
+  yum:
+    name: "{{ satellite_katello_ca_rpm }}"
+    state: present
+    disable_gpg_check: true
+
+- name: register to satellite
+  redhat_subscription:
+    activationkey: "{{ satellite_activation_key }}"
+    org_id: "{{ satellite_org }}"
+    state: present
+    force_register: yes
+    auto_attach: true
